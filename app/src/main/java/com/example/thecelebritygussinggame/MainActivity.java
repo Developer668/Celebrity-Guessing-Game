@@ -4,7 +4,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -99,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected String doInBackground(String... urls) {
 
-            String result = "";
+            StringBuilder result = new StringBuilder();
 
             URL url;
 
@@ -110,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
                 url = new URL(urls[0]);
 
                 urlConnection = (HttpsURLConnection) url.openConnection();
+                urlConnection.setRequestProperty("User-Agent", "Mozilla/5.0 (Android) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0 Mobile Safari/537.36");
+                urlConnection.setRequestProperty("Accept-Language", "en-US,en;q=0.9");
 
                 InputStream in  = urlConnection.getInputStream();
 
@@ -121,13 +122,13 @@ public class MainActivity extends AppCompatActivity {
 
                     char current = (char) data;
 
-                    result += current;
+                    result.append(current);
 
                     data = reader.read();
 
                 }
 
-                return result;
+                return result.toString();
 
             } catch (Exception e) {
 
@@ -221,41 +222,27 @@ public class MainActivity extends AppCompatActivity {
 
             result = task.execute("https://www.imdb.com/list/ls052283250/").get();
 
-            String[] splitResult = result.split("<div class=\"desc\"");
+            Pattern p = Pattern.compile("<img[^>]*alt=\\\"(.*?)\\\"[^>]*(?:loadlate|data-src|src)=\\\"(https://m\\.media-amazon\\.com/images/[^\\\"]+?\\.jpg)[^\\\"]*\\\"", Pattern.DOTALL);
 
-            Pattern p = Pattern.compile("src=\"(.*?).jpg\"");
-
-            Matcher m = p.matcher(splitResult[0]);
-
-            while (m.find()) {
-
-                celebURLs.add(m.group(1));
-
-                counter++;
-
-                //System.out.println(m.group(1));
-
-            }
-
-            System.out.println(counter);
-
-            counter = 0;
-
-            p = Pattern.compile("img alt=\"(.*?)\"");
-
-            m = p.matcher(splitResult[0]);
+            Matcher m = p.matcher(result);
 
             while (m.find()) {
 
                 celebNames.add(m.group(1));
 
-                counter++;
+                celebURLs.add(m.group(2));
 
-                //System.out.println(m.group(1));
+                counter++;
 
             }
 
-            System.out.println(counter);
+            if (celebURLs.isEmpty()) {
+
+                Toast.makeText(getApplicationContext(), "Unable to load celebrity data. Please try again later.", LENGTH_SHORT).show();
+
+                return;
+
+            }
 
             newQuestion();
 
